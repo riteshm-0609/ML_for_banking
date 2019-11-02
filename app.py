@@ -1,5 +1,6 @@
-from flask import Flask, url_for, render_template, request
+from flask import Flask, url_for, render_template, request, redirect, session
 from flask_pymongo import PyMongo
+from flaskext.mysql import MySQL
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -14,15 +15,51 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 UPLOAD_FOLDER = '/home/ritesh/Desktop/ocr_banking'
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test3.db'
-#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+mysql = MySQL()
+app.secret_key = 'rootpasswordgiven'
+app.config['MYSQL_DATABASE_USER'] = 'root'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'rootpasswordgiven'
+app.config['MYSQL_DATABASE_DB'] = 'test'
+app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+mysql.init_app(app)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/test"
 mongo = PyMongo(app)
+conn = mysql.connect()
+cursor =conn.cursor()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-@app.route("/",  methods = [ 'GET' , 'POST' ])
-def home():
-	return render_template('start.html') 
 
+
+@app.route("/home",  methods = [ 'GET' , 'POST' ])
+def home():
+	if 'username' in session:
+		return render_template('start.html') 
+
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    # Output message if something goes wrong...
+    error = ''
+    # Check if "username" and "password" POST requests exist (user submitted form)
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        # Create variables for easy access
+        username = request.form['username']
+        password = request.form['password']
+        # Check if account exists using MySQL
+        cursor.execute('SELECT * FROM employee WHERE username = %s AND password = %s', (username, password))
+        # Fetch one record and return result
+        account = cursor.fetchone()
+        # If account exists in accounts table in out database
+        if account:
+            # Create session data, we can access this data in other routes
+            session['loggedin'] = True
+            session['id'] = account[0]
+            session['username'] = account[2]
+            # Redirect to home page
+            return render_template('start.html')
+        else:
+            # Account doesnt exist or username/password incorrect
+            error = 'Incorrect username/password!'
+    # Show the login form with message (if any)
+    return render_template('login.html', error=error)
 
 @app.route("/afr", methods = ['GET', 'POST']) 
 def afr():
@@ -79,49 +116,60 @@ def afr():
 	cv2.imwrite(filename, father_name)
 	dad_txt = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
-	return render_template('testing.html', acc_no=acc_no_txt,cust_no=cust_id_txt,name_txt = name_txt,dob_txt = dob_txt,mom_txt = mom_txt,dad_txt = dad_txt )
+	return render_template('testing.html', acc_no=acc_no,cust_no=cust_no,name = name,\
+	father = father,mother = mother,email = email, income = income, co_income = co_income,\
+	amount = amount, term = term,dependents = dependents)
 	
 @app.route("/upload", methods = ['GET', 'POST']) 
 def upload():
 	if request.method == 'POST':
-		name = request.form["name_txt"]
+		name = request.form["name"]
 		customer_no = request.form["customer_no"]
 		account_no = request.form["acc_no"]
+		dob = request.form["dob"]
+		father = request.form["father"]
+		mother = request.form["mother"]
+		email = request.form["email"]
+		income = request.form["income"]
+		co_income = request.form["co_income"]
+		amount = request.form["amount"]
+		term = request.form["term"]
+		dependents = request.form["dependents"]
+		credit = request.form["credit"]
+		df = [income,co_income,amount,term]
 	dataset = pd.read_csv('/home/ritesh/Desktop/ocr_banking/train.csv')
-	X = dataset.iloc[:, [3,5,6,7,8,9,10]].values
+	X = dataset.iloc[:, [6,7,8,9]].values
 	y = dataset.iloc[:, 12].values
 	from sklearn.preprocessing import StandardScaler
 	sc = StandardScaler()
 	X = sc.fit_transform(X)
+	from sklearn.impute import SimpleImputer
+	missingvalues = SimpleImputer(missing_values = np.nan, strategy = 'constant', verbose = 0)
+	missingvalues = missingvalues.fit(X[:, [0,1,2]])
+	X[:, [0,1,2]]=missingvalues.transform(X[:, [0,1,2]])
 	from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 	labelencoder_X = LabelEncoder()
-	X[:, 5] = labelencoder_X.fit_transform(X[:, 5])
-	onehotencoder = OneHotEncoder(categorical_features = [5])
-	X = onehotencoder.fit_transform(X).toarray()
 	labelencoder_y = LabelEncoder()
 	y = labelencoder_y.fit_transform(y)
 	from sklearn.linear_model import LogisticRegression
 	classifier = LogisticRegression(random_state = 0)
 	classifier.fit(X, y)
-	data = mongo.db.customer.findOne()
-	df = pd.Dataframe(list(data))
-	labelencoder_df = LabelEncoder()
-	df[:, 6] = labelencoder_df.fit_transform(X[:, 6])
-	onehotencoder = OneHotEncoder(categorical_features = [6])
-	df = onehotencoder.fit_transform(df).toarray()
+	#data = mongo.db.customer.findOne()
+	#df = pd.Dataframe(list(data))
 	y_pred = classifier.predict(df)
-	mongo.db.customer.insert({"name":name,"customer_no":customer_no,"account_no":account_no})
+	mongo.db.customer.insert({"name":name,"customer_no":customer_no,\
+		"account_no":account_no,"dob":dob,"father":father,"mother":mother,"email":email,\
+			"income":income,"co_income":co_income,"amount":amount,"term":term,"dependents":dependents})
 	return render_template('uploadsuccessful.html')	
 #manager
 
 @app.route("/manager", methods = ['GET', 'POST']) 
 def manager():
 	customers = mongo.db.customer.find()
-	return render_template('mnagae.html')
+	return render_template('manage.html', customers = customers)
 
-
-
-
+#@app.route("/approve", methods = ['GET', 'POST']) 
+#def approve():
 
 
 
