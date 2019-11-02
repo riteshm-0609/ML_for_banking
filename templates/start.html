@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<head>
+  <h1>
+  OCR Banking Application
+  </h1>  
+</head>
+<body>
+  <form action={{url_for('afr')}} , method="post", enctype="multipart/form-data">
+    Upload file to be evaluated:<br>
+    <input type="file" name="file"><br><br>
+    <input type="submit" name="submit">
+  </form>
+</body>

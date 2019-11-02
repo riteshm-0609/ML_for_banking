@@ -1,0 +1,32 @@
+<html>
+<body>
+    <head>
+        <title>Loan Approval</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+      </head>
+        <div>
+            <table style="width:100%">
+                <tr>
+                  <th>Name</th>
+                  <th>Cust_Id</th>
+                  <th>Loan-ID</th>
+                </tr>
+                {% for item in customers %}
+                <tr id = "row">
+                    <td>{{item['name']}}</td>
+                    <td>{{item['customer_no']}}</td>
+                    <td>{{item['account_no']}}</td>
+                    <td> <button type="button" class="btn btn-primary" onclick="{{url_for('approve')}}">Approve</button>
+                        <button type="button" class="btn btn-secondary" onclick="{{url_for('reject')}}">Reject</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+</body>
+</html>

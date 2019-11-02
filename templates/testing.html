@@ -1,0 +1,46 @@
+<html>
+  <h1>Customer Details</h1>
+<body>
+  <div>
+  <form action={{url_for('upload')}} , method="post", enctype="multipart/form-data">
+    <label for="name">name:</label>
+    <input type="text" name="name" id="name" value={{name}}>
+<br><br>
+    <label for="accno">Account Number:</label>
+    <input type="text" name="acc_no" id="acc_no" value={{acc_no}}>
+    <br><br>
+    <label for="custno">Customer Id:</label>
+    <input type="text" name="customer_no" id="customer_no" value={{cust_no}}>
+    <br><br>
+    <label for="dob">Dob:</label>
+    <input type="text" name="dob" id="dob" value={{dob}}>
+    <br><br>
+    <label for="mother">Mother's Name:</label>
+    <input type="text" name="mother" id="mother" value={{mother}}>
+    <br><br>
+    <label for="father">Father's Name:</label>
+    <input type="text" name="father" id="father" value={{father}}>
+    <br><br>
+    <label for="email">Email:</label>
+    <input type="text" name="email" id="email" value={{email}}"@gmail.com">
+    <br><br>
+    <label for="income">Applicant Income:</label>
+    <input type="text" name="income" id="income" value={{income}}>
+    <br><br>
+    <label for="co_income">Co-Applicant Income:</label>
+    <input type="text" name="co_income" id="co_income" value={{co_income}}>
+    <br><br>
+    <label for="amount">Loan Amount:</label>
+    <input type="text" name="amount" id="amount" value={{amount}}>
+    <br><br>
+    <label for="term">Loan Term:</label>
+    <input type="text" name="term" id="term" value={{term}}>
+    <br><br>
+    <label for="dependents">:</label>
+    <input type="text" name="dependents" id="dependents" value={{dependents}}>
+    <br><br>    
+    <input type="submit">
+</form>
+</div>
+</body>
+</html>
