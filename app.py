@@ -13,6 +13,7 @@ from PIL import Image
 #from sklearn.metrics import accuracy_score
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
+import smtplib
 app = Flask(__name__)
 UPLOAD_FOLDER = '/home/ritesh/Desktop/ocr_banking'
 mysql = MySQL()
@@ -168,9 +169,39 @@ def manager():
 	customers = mongo.db.customer.find()
 	return render_template('manage.html', customers = customers)
 
-#@app.route("/approve", methods = ['GET', 'POST']) 
-#def approve():
+@app.route("/approve", methods = ['GET', 'POST']) 
+def approve():
+	account = mongo.db.customer.findOne()
+	cust_no = account["cust_no"]
+	email = account["email"]
+	s = smtplib.SMTP('riteshm.0609@gmail.com', 587)
+	s.starttls() 
+	s.login("riteshm.0609@gmail.com", "Ritesh.M@06") 
+	message = "Congratulations! your loan has been approved"
+	s.sendmail("riteshm.0609@gmail.com", email, message) 
+	s.quit() 
+	mongo.db.customer.deleteOne()
+	mongo.db.customer_finished.insert(account)
+	cursor.execute('INSERT INTO loan_status VALUES(%d,%s)',(cust_no,"approved"))
+	customers = mongo.db.customer.find()
+	return render_template('manage.html', customers = customers)
 
+@app.route("/reject", methods = ['GET', 'POST']) 
+def reject():
+	account = mongo.db.customer.findOne()
+	cust_no = account["cust_no"]
+	email = account["email"]
+	s = smtplib.SMTP('riteshm.0609@gmail.com', 587)
+	s.starttls() 
+	s.login("sender_email_id", "sender_email_id_password") 
+	message = "We are sorry to inform you that your Loan has been Rejected."
+	s.sendmail("riteshm.0609@gmail.com", email, message) 
+	s.quit() 
+	mongo.db.customer.deleteOne()
+	mongo.db.customer_finished.insert(account)
+	cursor.execute('INSERT INTO loan_status VALUES(%d,%s)',(cust_no,"rejected"))
+	customers = mongo.db.customer.find()
+	return render_template('manage.html', customers = customers)
 
 
 if __name__ == '__main__':
