@@ -14,8 +14,13 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 import smtplib
+from flask_mail import Message, Mail
+#import socket
+#sock = socket.socket()
+#sock.connect(("smtp.gmail.com", 587))
 app = Flask(__name__)
 UPLOAD_FOLDER = '/home/ritesh/Desktop/ocr_banking'
+#SQLPART
 mysql = MySQL()
 app.secret_key = 'rootpasswordgiven'
 app.config['MYSQL_DATABASE_USER'] = 'root'
@@ -23,11 +28,20 @@ app.config['MYSQL_DATABASE_PASSWORD'] = 'rootpasswordgiven'
 app.config['MYSQL_DATABASE_DB'] = 'test'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
+#MONGOPART
 app.config["MONGO_URI"] = "mongodb://localhost:27017/test"
 mongo = PyMongo(app)
 conn = mysql.connect()
 cursor =conn.cursor()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+#EMAILPART
+mail = Mail()
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_PORT"] = 465
+app.config["MAIL_USE_SSL"] = True
+app.config["MAIL_USERNAME"] = 'riteshm.0609@gmail.com'
+app.config["MAIL_PASSWORD"] = 'Ritesh.M@06'
+mail.init_app(app)
 
 
 @app.route("/home",  methods = [ 'GET' , 'POST' ])
@@ -74,52 +88,78 @@ def afr():
 
 	#ACCOUNT NUMBER
 	acc_no = img[350:400,120:600]
-	plt.imshow(acc_no)
 	filename = "{}.png".format(os.getpid())
 	cv2.imwrite(filename, acc_no)
-	acc_no_txt = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	acc_no = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 	#CUSTOMER ID
 	cust_id = img[350:404,854:1170]
-	plt.imshow(cust_id)
 	filename1 = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename1, cust_id)
-	cust_id_txt = pytesseract.image_to_string(Image.open(filename1),lang='eng')
+	cust_no = pytesseract.image_to_string(Image.open(filename1),lang='eng')
 	os.remove(filename1)
 	#NAME
 	name = img[444:490,290:600]
-	plt.imshow(name)
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, name)
-	name_txt = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	name = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 
 	#DATE OF BIRTH
 	dob = img[622:670,120:500]
-	plt.imshow(dob)
 	filename1 = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename1, dob)
-	dob_txt = pytesseract.image_to_string(Image.open(filename1),lang='eng')
+	dob = pytesseract.image_to_string(Image.open(filename1),lang='eng')
 	os.remove(filename1)
 
 	#MOTHER'S NAME
 	mother_name = img[900:945,290:600]
-	plt.imshow(mother_name)
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, mother_name)
-	mom_txt = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	mother = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 
 	#FATHER'S NAME
 	father_name = img[825:880,290:600]
-	plt.imshow(father_name)
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, father_name)
-	dad_txt = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	father = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
-	return render_template('testing.html', acc_no=acc_no,cust_no=cust_no,name = name,\
+
+	email = img[444:490,290:600]
+	filename = "{}.jpg".format(os.getpid())
+	cv2.imwrite(filename, email)
+	email = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	os.remove(filename)
+
+	income = img[444:490,290:600]
+	filename = "{}.jpg".format(os.getpid())
+	cv2.imwrite(filename, income)
+	income = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	os.remove(filename)
+
+	co_income = img[444:490,290:600]
+	filename = "{}.jpg".format(os.getpid())
+	cv2.imwrite(filename, co_income)
+	co_income = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	os.remove(filename)
+
+	amount = img[444:490,290:600]
+	filename = "{}.jpg".format(os.getpid())
+	cv2.imwrite(filename, amount)
+	amount = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	os.remove(filename)
+
+	term = img[444:490,290:600]
+	filename = "{}.jpg".format(os.getpid())
+	cv2.imwrite(filename, term)
+	term = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	os.remove(filename)
+
+
+	return render_template('testing.html', acc_no=acc_no,cust_no=cust_no,name = name,dob = dob,\
 	father = father,mother = mother,email = email, income = income, co_income = co_income,\
-	amount = amount, term = term,dependents = dependents)
+	amount = amount, term = term)
 	
 @app.route("/upload", methods = ['GET', 'POST']) 
 def upload():
@@ -136,8 +176,9 @@ def upload():
 		amount = request.form["amount"]
 		term = request.form["term"]
 		dependents = request.form["dependents"]
-		credit = request.form["credit"]
+		#credit = request.form["credit"]
 		df = [income,co_income,amount,term]
+		df = pd.DataFrame(df).T
 	dataset = pd.read_csv('/home/ritesh/Desktop/ocr_banking/train.csv')
 	X = dataset.iloc[:, [6,7,8,9]].values
 	y = dataset.iloc[:, 12].values
@@ -158,9 +199,13 @@ def upload():
 	#data = mongo.db.customer.findOne()
 	#df = pd.Dataframe(list(data))
 	y_pred = classifier.predict(df)
+	if y_pred == 0:
+		result = "reject"
+	else:
+		result = "approve"	
 	mongo.db.customer.insert({"name":name,"customer_no":customer_no,\
-		"account_no":account_no,"dob":dob,"father":father,"mother":mother,"email":email,\
-			"income":income,"co_income":co_income,"amount":amount,"term":term,"dependents":dependents})
+	"account_no":account_no,"dob":dob,"father":father,"mother":mother,"email":email,\
+	"income":income,"co_income":co_income,"amount":amount,"term":term,"dependents":dependents,"result":result })
 	return render_template('uploadsuccessful.html')	
 #manager
 
@@ -171,33 +216,32 @@ def manager():
 
 @app.route("/approve", methods = ['GET', 'POST']) 
 def approve():
-	account = mongo.db.customer.findOne()
-	cust_no = account["cust_no"]
-	email = account["email"]
-	s = smtplib.SMTP('riteshm.0609@gmail.com', 587)
-	s.starttls() 
-	s.login("riteshm.0609@gmail.com", "Ritesh.M@06") 
-	message = "Congratulations! your loan has been approved"
-	s.sendmail("riteshm.0609@gmail.com", email, message) 
-	s.quit() 
-	mongo.db.customer.deleteOne()
+	account = mongo.db.customer.find_one()
+	cust_no = account['customer_no']
+	email = account['email']
+	msg = Message("Loan_status", sender="riteshm.0609@gmail.com",recipients = [email])
+	msg.body = """
+    Congratulations! Your loan has been approved
+    """
+	mail.send(msg)
+	mongo.db.customer.delete_one({"customer_no" : cust_no })
 	mongo.db.customer_finished.insert(account)
-	cursor.execute('INSERT INTO loan_status VALUES(%d,%s)',(cust_no,"approved"))
+	cursor.execute('INSERT INTO loan_status VALUES(%s,%s)',(cust_no,"approved"))
 	customers = mongo.db.customer.find()
 	return render_template('manage.html', customers = customers)
 
 @app.route("/reject", methods = ['GET', 'POST']) 
 def reject():
-	account = mongo.db.customer.findOne()
-	cust_no = account["cust_no"]
-	email = account["email"]
+	account = mongo.db.customer.find_one()
+	cust_no = account['customer_no']
+	email = account['email']
 	s = smtplib.SMTP('riteshm.0609@gmail.com', 587)
 	s.starttls() 
-	s.login("sender_email_id", "sender_email_id_password") 
+	s.login("riteshm.0609@gmail.com", "Ritesh.M@06") 
 	message = "We are sorry to inform you that your Loan has been Rejected."
 	s.sendmail("riteshm.0609@gmail.com", email, message) 
 	s.quit() 
-	mongo.db.customer.deleteOne()
+	mongo.db.customer.delete_one()
 	mongo.db.customer_finished.insert(account)
 	cursor.execute('INSERT INTO loan_status VALUES(%d,%s)',(cust_no,"rejected"))
 	customers = mongo.db.customer.find()
