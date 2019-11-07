@@ -87,75 +87,83 @@ def afr():
 		img = cv2.imread(filepath) 
 
 	#ACCOUNT NUMBER
-	acc_no = img[350:400,120:600]
+	acc_no = img[403:490,120:700]
+	plt.imshow(acc_no)
 	filename = "{}.png".format(os.getpid())
 	cv2.imwrite(filename, acc_no)
 	acc_no = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
+	
 	#CUSTOMER ID
-	cust_id = img[350:404,854:1170]
+	cust_no = img[412:480,1000:1500]
 	filename1 = "{}.jpg".format(os.getpid())
-	cv2.imwrite(filename1, cust_id)
+	cv2.imwrite(filename1, cust_no)
 	cust_no = pytesseract.image_to_string(Image.open(filename1),lang='eng')
 	os.remove(filename1)
+	
 	#NAME
-	name = img[444:490,290:600]
+	name = img[505:585,120:700]
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, name)
 	name = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 
 	#DATE OF BIRTH
-	dob = img[622:670,120:500]
+	dob = img[665:730,120:555]
 	filename1 = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename1, dob)
 	dob = pytesseract.image_to_string(Image.open(filename1),lang='eng')
 	os.remove(filename1)
-
+	
 	#MOTHER'S NAME
-	mother_name = img[900:945,290:600]
+	mother= img[940:1000,120:700]
 	filename = "{}.jpg".format(os.getpid())
-	cv2.imwrite(filename, mother_name)
+	cv2.imwrite(filename, mother)
 	mother = pytesseract.image_to_string(Image.open(filename),lang='eng')
-	os.remove(filename)
-
+	
 	#FATHER'S NAME
-	father_name = img[825:880,290:600]
+	father = img[850:920,120:700]
 	filename = "{}.jpg".format(os.getpid())
-	cv2.imwrite(filename, father_name)
-	father = pytesseract.image_to_string(Image.open(filename),lang='eng')
+	cv2.imwrite(filename, father)
+	father=pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
-
-	email = img[444:490,290:600]
+		
+	#EMAIL
+	email = img[1320:1400,330:1000]
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, email)
 	email = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 
-	income = img[444:490,290:600]
+	
+	#INCOME
+	income = img[1520:1600,120:700]
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, income)
 	income = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
-
-	co_income = img[444:490,290:600]
+	
+	
+	#CO_INCOME
+	co_income = img[1670:1750,120:500]
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, co_income)
 	co_income = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 
-	amount = img[444:490,290:600]
+	#amount
+	amount= img[1820:1900,120:550]
 	filename = "{}.jpg".format(os.getpid())
 	cv2.imwrite(filename, amount)
 	amount = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
 
-	term = img[444:490,290:600]
+	#term
+	term = img[1970:2050,120:550]
 	filename = "{}.jpg".format(os.getpid())
-	cv2.imwrite(filename, term)
+	cv2.imwrite(filename,term)
 	term = pytesseract.image_to_string(Image.open(filename),lang='eng')
 	os.remove(filename)
-
 
 	return render_template('testing.html', acc_no=acc_no,cust_no=cust_no,name = name,dob = dob,\
 	father = father,mother = mother,email = email, income = income, co_income = co_income,\
@@ -209,10 +217,36 @@ def upload():
 	return render_template('uploadsuccessful.html')	
 #manager
 
-@app.route("/manager", methods = ['GET', 'POST']) 
+@app.route("/manager", methods = ['GET', 'POST'])
+def manlogin():
+	render_template('manlogin.html') 
 def manager():
-	customers = mongo.db.customer.find()
-	return render_template('manage.html', customers = customers)
+	error = ''
+    # Check if "username" and "password" POST requests exist (user submitted form)
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        # Create variables for easy access
+        username = request.form['username']
+        password = request.form['password']
+        # Check if account exists using MySQL
+        cursor.execute('SELECT * FROM managers WHERE username = %s AND password = %s', (username, password))
+        # Fetch one record and return result
+        account = cursor.fetchone()
+        # If account exists in accounts table in out database
+        if account:
+            # Create session data, we can access this data in other routes
+            session['loggedin'] = True
+            session['id'] = account[0]
+            session['username'] = account[2]
+            # Redirect to home page
+			customers = mongo.db.customer.find()
+			return render_template('manage.html', customers = customers)
+        else:
+            # Account doesnt exist or username/password incorrect
+            error = 'Incorrect username/password!'
+    # Show the login form with message (if any)
+    return render_template('manlogin.html', error=error)
+
+	
 
 @app.route("/approve", methods = ['GET', 'POST']) 
 def approve():
@@ -226,7 +260,8 @@ def approve():
 	mail.send(msg)
 	mongo.db.customer.delete_one({"customer_no" : cust_no })
 	mongo.db.customer_finished.insert(account)
-	cursor.execute('INSERT INTO loan_status VALUES(%s,%s)',(cust_no,"approved"))
+	cursor.execute('''INSERT INTO loan_status VALUES(%s,%s)''',(cust_no,"approved"))
+	conn.commit()
 	customers = mongo.db.customer.find()
 	return render_template('manage.html', customers = customers)
 
@@ -235,15 +270,14 @@ def reject():
 	account = mongo.db.customer.find_one()
 	cust_no = account['customer_no']
 	email = account['email']
-	s = smtplib.SMTP('riteshm.0609@gmail.com', 587)
-	s.starttls() 
-	s.login("riteshm.0609@gmail.com", "Ritesh.M@06") 
-	message = "We are sorry to inform you that your Loan has been Rejected."
-	s.sendmail("riteshm.0609@gmail.com", email, message) 
-	s.quit() 
-	mongo.db.customer.delete_one()
+	msg = Message("Loan_status", sender="riteshm.0609@gmail.com",recipients = [email])
+	msg.body = """
+    Your Loan Request Has been denied. We are sorry.
+    """
+	mail.send(msg)
+	mongo.db.customer.delete_one({"customer_no" : cust_no })
 	mongo.db.customer_finished.insert(account)
-	cursor.execute('INSERT INTO loan_status VALUES(%d,%s)',(cust_no,"rejected"))
+	cursor.execute('INSERT INTO loan_status VALUES(%s,%s)',(cust_no,"rejected"))
 	customers = mongo.db.customer.find()
 	return render_template('manage.html', customers = customers)
 
